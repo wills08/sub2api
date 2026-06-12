@@ -677,6 +677,8 @@ var (
 		{Name: "kiro_sticky_session_ttl_seconds", Type: field.TypeInt, Default: 3600},
 		{Name: "kiro_cache_emulation_ratio", Type: field.TypeFloat64, Default: 1, SchemaType: map[string]string{"postgres": "decimal(5,4)"}},
 		{Name: "kiro_credit_target_usd", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(8,4)"}},
+		{Name: "kiro_cache_force_ratio_center", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(5,4)"}},
+		{Name: "kiro_endpoint_mode", Type: field.TypeString, Size: 8, Default: "q"},
 	}
 	// GroupsTable holds the schema information for the "groups" table.
 	GroupsTable = &schema.Table{

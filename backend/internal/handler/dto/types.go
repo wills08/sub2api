@@ -127,7 +127,9 @@ type Group struct {
 	KiroCacheEmulationRatio     float64 `json:"kiro_cache_emulation_ratio"`
 
 	// Kiro 反向 token 缩放：每 credit 对应 USD 余额（0=禁用，仅 platform=kiro 生效）
-	KiroCreditTargetUSD float64 `json:"kiro_credit_target_usd"`
+	KiroCreditTargetUSD       float64 `json:"kiro_credit_target_usd"`
+	KiroCacheForceRatioCenter float64 `json:"kiro_cache_force_ratio_center"`
+	KiroEndpointMode          string  `json:"kiro_endpoint_mode"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

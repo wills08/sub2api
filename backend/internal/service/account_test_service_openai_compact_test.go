@@ -49,7 +49,7 @@ func TestAccountTestService_TestAccountConnection_OpenAICompactOAuthSuccessPersi
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/1/test", bytes.NewReader(nil))
 
-	err := svc.TestAccountConnection(c, account.ID, "gpt-5.4", "", AccountTestModeCompact)
+	err := svc.TestAccountConnection(c, account.ID, "gpt-5.4", "", AccountTestModeCompact, "")
 	require.NoError(t, err)
 
 	require.Equal(t, chatgptCodexAPIURL+"/compact", upstream.lastReq.URL.String())
@@ -103,7 +103,7 @@ func TestAccountTestService_TestAccountConnection_OpenAICompactOAuth404MarksUnsu
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/2/test", bytes.NewReader(nil))
 
-	err := svc.TestAccountConnection(c, account.ID, "gpt-5.4", "", AccountTestModeCompact)
+	err := svc.TestAccountConnection(c, account.ID, "gpt-5.4", "", AccountTestModeCompact, "")
 	require.Error(t, err)
 
 	updates := <-updateCalls
@@ -149,7 +149,7 @@ func TestAccountTestService_TestAccountConnection_OpenAICompactAPIKeyUsesCompact
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/3/test", bytes.NewReader(nil))
 
-	err := svc.TestAccountConnection(c, account.ID, "gpt-5.4", "", AccountTestModeCompact)
+	err := svc.TestAccountConnection(c, account.ID, "gpt-5.4", "", AccountTestModeCompact, "")
 	require.NoError(t, err)
 
 	require.Equal(t, "https://example.com/v1/responses/compact", upstream.lastReq.URL.String())
@@ -193,7 +193,7 @@ func TestAccountTestService_TestAccountConnection_OpenAICompactAPIKeyDefaultBase
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/4/test", bytes.NewReader(nil))
 
-	err := svc.TestAccountConnection(c, account.ID, "gpt-5.4", "", AccountTestModeCompact)
+	err := svc.TestAccountConnection(c, account.ID, "gpt-5.4", "", AccountTestModeCompact, "")
 	require.NoError(t, err)
 	require.Equal(t, "https://api.openai.com/v1/responses/compact", upstream.lastReq.URL.String())
 	<-updateCalls

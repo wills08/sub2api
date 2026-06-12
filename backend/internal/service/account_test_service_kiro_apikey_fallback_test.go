@@ -44,7 +44,7 @@ func TestAccountTestService_KiroAPIKeyUsesGenericAnthropicCompatiblePath(t *test
 		tlsFPProfileService: &TLSFingerprintProfileService{},
 	}
 
-	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault)
+	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault, "")
 	require.Error(t, err)
 	require.Len(t, upstream.requests, 1)
 
@@ -78,7 +78,7 @@ func TestAccountTestService_KiroAPIKeyWithoutBaseURLErrors(t *testing.T) {
 		tlsFPProfileService: &TLSFingerprintProfileService{},
 	}
 
-	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault)
+	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault, "")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Base URL")
 }

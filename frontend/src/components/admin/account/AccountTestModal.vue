@@ -55,6 +55,21 @@
         />
       </div>
 
+      <!-- Kiro endpoint mode selector：仅 kiro 平台账号显示 -->
+      <div v-if="account?.platform === 'kiro'" class="space-y-1.5">
+        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Kiro 推理 Endpoint
+        </label>
+        <select
+          v-model="kiroEndpointMode"
+          :disabled="status === 'connecting'"
+          class="input w-full"
+        >
+          <option value="q">AWS Q (默认)</option>
+          <option value="krs">KRS (runtime.us-east-1.kiro.dev) — Kiro 自家网关</option>
+        </select>
+      </div>
+
       <div v-if="supportsImageTest" class="space-y-1.5">
         <TextArea
           v-model="testPrompt"
@@ -270,6 +285,8 @@ const streamingContent = ref('')
 const errorMessage = ref('')
 const availableModels = ref<ClaudeModel[]>([])
 const selectedModelId = ref('')
+// Kiro 推理 endpoint 模式（仅 kiro 平台账号生效）：默认 'q' (AWS Q)，可选 'krs' 走 Kiro 自家网关
+const kiroEndpointMode = ref<'q' | 'krs'>('q')
 const testPrompt = ref('')
 const loadingModels = ref(false)
 let abortController: AbortController | null = null
@@ -411,7 +428,9 @@ const startTest = async () => {
       },
       body: JSON.stringify({
               model_id: selectedModelId.value,
-              prompt: supportsImageTest.value ? testPrompt.value.trim() : ''
+              prompt: supportsImageTest.value ? testPrompt.value.trim() : '',
+              // 仅 kiro 平台账号生效：'q' 走 AWS Q（默认），'krs' 走 Kiro Runtime Service
+              endpoint_mode: props.account?.platform === 'kiro' ? kiroEndpointMode.value : ''
             }),
       signal: abortController.signal
     })

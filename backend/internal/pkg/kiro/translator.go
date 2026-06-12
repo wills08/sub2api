@@ -117,6 +117,17 @@ type KiroRequestContext struct {
 	// ReverseScalingPrices 是 Anthropic 标准价 (input/output/cc/cr per M tokens)，
 	// 由 service 层按 model 类别选好后传入。
 	ReverseScalingPrices [4]float64
+
+	// ForceCacheRatioCenter 启用 Anthropic-like 分布模拟（0 = 禁用，> 0 = 启用）。
+	// 按真实 Claude Code 直连 Anthropic 的统计分布反推切分 input / cache_read /
+	// cache_creation，让显示口径"看着像"真实 Anthropic（input 几乎为 0，cache_read
+	// 占 90%+，cache_creation 占剩余）。反向缩放仍精确生效（K 按重分布后总成本重算）。
+	ForceCacheRatioCenter float64
+
+	// EstimatedInputTokens 是 service 层用 estimateKiroInputTokens(body) 算出的请求体
+	// 大小。非流式路径 Kiro 一般不送 input_tokens，缺失时兜底，避免 force_cache 误判
+	// 为空请求（totalInput=0）。流式路径已通过函数参数携带，此字段只服务非流式。
+	EstimatedInputTokens int
 }
 
 type KiroBuildResult struct {
@@ -510,6 +521,11 @@ func ParseNonStreamingEventStreamWithContext(body io.Reader, model string, reque
 	content, toolUses, usage, stopReason, err := parseEventStream(body)
 	if err != nil {
 		return nil, err
+	}
+	// 非流式路径 Kiro 一般不送 input_tokens，先用 service 层算好的估值兜底，
+	// 让后续 cache_emu 合并 + force_cache 重写能看到真实 totalInput。
+	if usage.InputTokens == 0 && requestCtx.EstimatedInputTokens > 0 {
+		usage.InputTokens = requestCtx.EstimatedInputTokens
 	}
 	if requestCtx.CacheEmulationUsage != nil {
 		usage = mergeKiroCacheEmulationUsage(usage, requestCtx.CacheEmulationUsage)
@@ -4199,6 +4215,11 @@ func mergeKiroCacheEmulationUsage(base Usage, simulated *Usage) Usage {
 	base.CacheCreationInputTokens = simulated.CacheCreationInputTokens
 	base.CacheCreation5mInputTokens = simulated.CacheCreation5mInputTokens
 	base.CacheCreation1hInputTokens = simulated.CacheCreation1hInputTokens
+	// 兜底：cache 模拟可能把 input 全部分配走，但真实 Anthropic 最小 input=1。
+	// 后续 force_cache 也会兜底，提前做避免漏网。
+	if base.InputTokens == 0 && (base.CacheReadInputTokens > 0 || base.CacheCreationInputTokens > 0) {
+		base.InputTokens = 1
+	}
 	base.TotalTokens = base.InputTokens + base.OutputTokens + base.CacheReadInputTokens + base.CacheCreationInputTokens
 	return base
 }
@@ -4218,6 +4239,10 @@ const (
 //
 // 参考算法：KIRO_REVERSE_SCALING_ALGORITHM.md
 func applyKiroReverseScalingUsage(usage Usage, ctx KiroRequestContext) Usage {
+	// Step 0: 强制缓存模拟先于反向缩放守卫执行——force_cache 是纯显示层重写，
+	// 不依赖 KiroCredits；即使 meteringEvent 没收到（credits=0），也保证显示口径像真实 Anthropic。
+	usage = applyKiroForceCacheRatio(usage, ctx)
+
 	if ctx.ReverseScalingTargetUSD <= 0 || usage.KiroCredits <= 0 {
 		return usage
 	}
@@ -4258,6 +4283,123 @@ func scaleKiroTokenValue(orig int, K float64) int {
 		return 1
 	}
 	return scaled
+}
+
+// kiroAnthropicLikeBreakpoint 是 Anthropic-like token 分布拟合段端点。
+type kiroAnthropicLikeBreakpoint struct {
+	threshold float64
+	readRatio float64
+	inputCap  int
+}
+
+// kiroAnthropicLikeFit 基于真实 Anthropic Claude Code 直连数据反推的分段拟合表：
+// total 越大 → cache_read 占比越接近 99%，input 几乎可忽略（真实 p50=1）。
+var kiroAnthropicLikeFit = []kiroAnthropicLikeBreakpoint{
+	{0, 0.500, 1},
+	{5000, 0.750, 1},
+	{20000, 0.885, 1},
+	{100000, 0.935, 3},
+	{500000, 0.985, 8},
+	{2000000, 0.992, 12},
+}
+
+// computeKiroAnthropicLikeRatio 给定 total_input_tokens，返回 (cache_read_ratio, input_cap)。
+// 分段线性插值；输入越大 ratio 越接近 99%。
+func computeKiroAnthropicLikeRatio(total int) (float64, int) {
+	t := float64(total)
+	bp := kiroAnthropicLikeFit
+	if t <= bp[0].threshold {
+		return bp[0].readRatio, bp[0].inputCap
+	}
+	if t >= bp[len(bp)-1].threshold {
+		return bp[len(bp)-1].readRatio, bp[len(bp)-1].inputCap
+	}
+	for i := 0; i < len(bp)-1; i++ {
+		if t >= bp[i].threshold && t < bp[i+1].threshold {
+			seg := bp[i+1].threshold - bp[i].threshold
+			if seg <= 0 {
+				return bp[i].readRatio, bp[i].inputCap
+			}
+			p := (t - bp[i].threshold) / seg
+			ratio := bp[i].readRatio + p*(bp[i+1].readRatio-bp[i].readRatio)
+			cap := bp[i].inputCap
+			if bp[i+1].inputCap > cap {
+				cap = bp[i+1].inputCap // 跨段时取大的，避免 input 突然变小
+			}
+			return ratio, cap
+		}
+	}
+	return bp[len(bp)-1].readRatio, bp[len(bp)-1].inputCap
+}
+
+// applyKiroForceCacheRatio 把 token 按真实 Claude Code 直连 Anthropic 的分布反推切成
+// input / cache_read / cache_creation 三段，让显示口径"看着像"真实 Anthropic
+// （input 几乎为 0，cache_read 占 90%+，cache_creation 占剩余）。
+//
+// 触发条件：ctx.ForceCacheRatioCenter > 0。
+// 重写策略：极短请求（totalInput <= 100）仅兜底 input=0→1；input>0 且 input_ratio<0.5%
+// 视为已经像真实 Anthropic，保留；其他按 kiroAnthropicLikeFit 重写。
+// 反向缩放在本函数之后执行，K 会按重分布后的总成本重算，total_cost = credits × target_usd 仍精确。
+// 本函数不依赖 KiroCredits（纯按 totalInput 分段重写），credits=0 时也能让显示口径正常。
+func applyKiroForceCacheRatio(usage Usage, ctx KiroRequestContext) Usage {
+	// 兜底：input=0 且 cache>0 时强制 input=1（真实 Anthropic 最小 input=1）。
+	// 独立于 ForceCacheRatioCenter 开关，防止 input=0 漏到 SSE/DB。
+	if usage.InputTokens == 0 && (usage.CacheReadInputTokens > 0 || usage.CacheCreationInputTokens > 0) {
+		usage.InputTokens = 1
+	}
+
+	if ctx.ForceCacheRatioCenter <= 0 {
+		return usage
+	}
+
+	totalInput := usage.InputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens
+
+	// 极短请求：只兜底 input=0 → 1，其他保留原样。
+	if totalInput <= 100 {
+		if usage.InputTokens == 0 && (usage.CacheReadInputTokens > 0 || usage.CacheCreationInputTokens > 0) {
+			usage.InputTokens = 1
+		}
+		return usage
+	}
+
+	// 守卫：input>0 且 input_ratio < 0.5% 视为已经像真实 Anthropic，不动。
+	if usage.InputTokens > 0 {
+		inputRatio := float64(usage.InputTokens) / float64(totalInput)
+		if inputRatio < 0.005 {
+			return usage
+		}
+	}
+
+	readRatio, inputCap := computeKiroAnthropicLikeRatio(totalInput)
+
+	// 1. input 钳制在 inputCap。
+	newInput := inputCap
+	if newInput >= totalInput-2 {
+		newInput = totalInput - 2
+	}
+	if newInput < 1 {
+		newInput = 1
+	}
+
+	// 2. 剩下分给 cache_read 和 cache_creation。
+	remaining := totalInput - newInput
+	newCacheRead := int(math.Round(float64(remaining) * readRatio))
+	if newCacheRead >= remaining {
+		newCacheRead = remaining - 1
+	}
+	if newCacheRead < 0 {
+		newCacheRead = 0
+	}
+	newCacheCreation := remaining - newCacheRead
+
+	usage.InputTokens = newInput
+	usage.CacheReadInputTokens = newCacheRead
+	// 真实数据显示 cache_creation 几乎全在 5m TTL。
+	usage.CacheCreation5mInputTokens = newCacheCreation
+	usage.CacheCreation1hInputTokens = 0
+	usage.CacheCreationInputTokens = newCacheCreation
+	usage.TotalTokens = usage.InputTokens + usage.OutputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens
+	return usage
 }
 
 func addKiroCacheUsageFields(usageMap map[string]any, usage Usage) {

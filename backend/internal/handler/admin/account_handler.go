@@ -708,6 +708,8 @@ type TestAccountRequest struct {
 	ModelID string `json:"model_id"`
 	Prompt  string `json:"prompt"`
 	Mode    string `json:"mode"`
+	// EndpointMode 仅 Kiro 账号生效："q" (默认, AWS Q) / "krs" (Kiro Runtime Service)
+	EndpointMode string `json:"endpoint_mode"`
 }
 
 type SyncFromCRSRequest struct {
@@ -738,7 +740,7 @@ func (h *AccountHandler) Test(c *gin.Context) {
 	_ = c.ShouldBindJSON(&req)
 
 	// Use AccountTestService to test the account with SSE streaming
-	if err := h.accountTestService.TestAccountConnection(c, accountID, req.ModelID, req.Prompt, req.Mode); err != nil {
+	if err := h.accountTestService.TestAccountConnection(c, accountID, req.ModelID, req.Prompt, req.Mode, req.EndpointMode); err != nil {
 		// Error already sent via SSE, just log
 		return
 	}

@@ -368,6 +368,8 @@ func TestAPIContracts(t *testing.T) {
 						"kiro_cache_emulation_enabled": false,
 						"kiro_cache_emulation_ratio": 0,
 						"kiro_credit_target_usd": 0,
+						"kiro_cache_force_ratio_center": 0,
+						"kiro_endpoint_mode": "q",
 						"created_at": "2025-01-02T03:04:05Z",
 						"updated_at": "2025-01-02T03:04:05Z"
 					}

@@ -898,6 +898,16 @@ func init() {
 	groupDescKiroCreditTargetUsd := groupFields[36].Descriptor()
 	// group.DefaultKiroCreditTargetUsd holds the default value on creation for the kiro_credit_target_usd field.
 	group.DefaultKiroCreditTargetUsd = groupDescKiroCreditTargetUsd.Default.(float64)
+	// groupDescKiroCacheForceRatioCenter is the schema descriptor for kiro_cache_force_ratio_center field.
+	groupDescKiroCacheForceRatioCenter := groupFields[37].Descriptor()
+	// group.DefaultKiroCacheForceRatioCenter holds the default value on creation for the kiro_cache_force_ratio_center field.
+	group.DefaultKiroCacheForceRatioCenter = groupDescKiroCacheForceRatioCenter.Default.(float64)
+	// groupDescKiroEndpointMode is the schema descriptor for kiro_endpoint_mode field.
+	groupDescKiroEndpointMode := groupFields[38].Descriptor()
+	// group.DefaultKiroEndpointMode holds the default value on creation for the kiro_endpoint_mode field.
+	group.DefaultKiroEndpointMode = groupDescKiroEndpointMode.Default.(string)
+	// group.KiroEndpointModeValidator is a validator for the "kiro_endpoint_mode" field. It is called by the builders before save.
+	group.KiroEndpointModeValidator = groupDescKiroEndpointMode.Validators[0].(func(string) error)
 	idempotencyrecordMixin := schema.IdempotencyRecord{}.Mixin()
 	idempotencyrecordMixinFields0 := idempotencyrecordMixin[0].Fields()
 	_ = idempotencyrecordMixinFields0

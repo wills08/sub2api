@@ -174,7 +174,7 @@ func createTestPayload(modelID string) (map[string]any, error) {
 // All account types use full Claude Code client characteristics, only auth header differs
 // modelID is optional - if empty, defaults to claude.DefaultTestModel
 // mode is optional - "compact" routes OpenAI accounts to the /responses/compact probe path
-func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int64, modelID string, prompt string, mode string) error {
+func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int64, modelID string, prompt string, mode string, endpointMode string) error {
 	ctx := c.Request.Context()
 
 	// Get account
@@ -197,7 +197,7 @@ func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int
 	}
 
 	if account.IsKiro() && account.Type == AccountTypeOAuth {
-		return s.testKiroAccountConnection(c, account, modelID)
+		return s.testKiroAccountConnection(c, account, modelID, endpointMode)
 	}
 
 	return s.testClaudeAccountConnection(c, account, modelID)
@@ -399,7 +399,7 @@ func (s *AccountTestService) testClaudeVertexServiceAccountConnection(c *gin.Con
 	return s.processClaudeStream(c, resp.Body)
 }
 
-func (s *AccountTestService) testKiroAccountConnection(c *gin.Context, account *Account, modelID string) error {
+func (s *AccountTestService) testKiroAccountConnection(c *gin.Context, account *Account, modelID string, endpointMode string) error {
 	ctx := c.Request.Context()
 
 	testModelID := strings.TrimSpace(modelID)
@@ -437,7 +437,7 @@ func (s *AccountTestService) testKiroAccountConnection(c *gin.Context, account *
 
 	s.sendEvent(c, TestEvent{Type: "test_start", Model: testModelID})
 
-	resp, err := s.executeKiroTestUpstream(ctx, account, payloadBytes, testModelID, accessToken)
+	resp, err := s.executeKiroTestUpstream(ctx, account, payloadBytes, testModelID, accessToken, endpointMode)
 	if err != nil {
 		return s.sendErrorAndEnd(c, fmt.Sprintf("Request failed: %s", err.Error()))
 	}
@@ -466,7 +466,7 @@ func formatKiroTestError(statusCode int, body []byte, requestedModel string, acc
 	return fmt.Sprintf("API returned %d: %s", statusCode, string(body))
 }
 
-func (s *AccountTestService) executeKiroTestUpstream(ctx context.Context, account *Account, anthropicBody []byte, mappedModel, token string) (*http.Response, error) {
+func (s *AccountTestService) executeKiroTestUpstream(ctx context.Context, account *Account, anthropicBody []byte, mappedModel, token string, endpointMode string) (*http.Response, error) {
 	modelID := kiropkg.MapModel(mappedModel)
 	currentToken := token
 	profileArn := resolveKiroPayloadProfileArn(account)
@@ -477,7 +477,11 @@ func (s *AccountTestService) executeKiroTestUpstream(ctx context.Context, accoun
 	}
 	payload := buildResult.Payload
 
-	endpoints := buildKiroEndpoints(account)
+	resolvedMode := KiroEndpointModeQ
+	if endpointMode == KiroEndpointModeKRS {
+		resolvedMode = KiroEndpointModeKRS
+	}
+	endpoints := buildKiroEndpoints(account, resolvedMode)
 	proxyURL := kiroProxyURL(account)
 	tlsProfile := s.tlsFPProfileService.ResolveTLSProfile(account)
 	accountKey := buildKiroAccountKey(account)
@@ -1845,7 +1849,7 @@ func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID in
 	ginCtx, _ := gin.CreateTestContext(w)
 	ginCtx.Request = (&http.Request{}).WithContext(ctx)
 
-	testErr := s.TestAccountConnection(ginCtx, accountID, modelID, "", AccountTestModeDefault)
+	testErr := s.TestAccountConnection(ginCtx, accountID, modelID, "", AccountTestModeDefault, "")
 
 	finishedAt := time.Now()
 	body := w.Body.String()

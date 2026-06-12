@@ -565,6 +565,34 @@ func (_c *GroupCreate) SetNillableKiroCreditTargetUsd(v *float64) *GroupCreate {
 	return _c
 }
 
+// SetKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field.
+func (_c *GroupCreate) SetKiroCacheForceRatioCenter(v float64) *GroupCreate {
+	_c.mutation.SetKiroCacheForceRatioCenter(v)
+	return _c
+}
+
+// SetNillableKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableKiroCacheForceRatioCenter(v *float64) *GroupCreate {
+	if v != nil {
+		_c.SetKiroCacheForceRatioCenter(*v)
+	}
+	return _c
+}
+
+// SetKiroEndpointMode sets the "kiro_endpoint_mode" field.
+func (_c *GroupCreate) SetKiroEndpointMode(v string) *GroupCreate {
+	_c.mutation.SetKiroEndpointMode(v)
+	return _c
+}
+
+// SetNillableKiroEndpointMode sets the "kiro_endpoint_mode" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableKiroEndpointMode(v *string) *GroupCreate {
+	if v != nil {
+		_c.SetKiroEndpointMode(*v)
+	}
+	return _c
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_c *GroupCreate) AddAPIKeyIDs(ids ...int64) *GroupCreate {
 	_c.mutation.AddAPIKeyIDs(ids...)
@@ -810,6 +838,14 @@ func (_c *GroupCreate) defaults() error {
 		v := group.DefaultKiroCreditTargetUsd
 		_c.mutation.SetKiroCreditTargetUsd(v)
 	}
+	if _, ok := _c.mutation.KiroCacheForceRatioCenter(); !ok {
+		v := group.DefaultKiroCacheForceRatioCenter
+		_c.mutation.SetKiroCacheForceRatioCenter(v)
+	}
+	if _, ok := _c.mutation.KiroEndpointMode(); !ok {
+		v := group.DefaultKiroEndpointMode
+		_c.mutation.SetKiroEndpointMode(v)
+	}
 	return nil
 }
 
@@ -926,6 +962,17 @@ func (_c *GroupCreate) check() error {
 	}
 	if _, ok := _c.mutation.KiroCreditTargetUsd(); !ok {
 		return &ValidationError{Name: "kiro_credit_target_usd", err: errors.New(`ent: missing required field "Group.kiro_credit_target_usd"`)}
+	}
+	if _, ok := _c.mutation.KiroCacheForceRatioCenter(); !ok {
+		return &ValidationError{Name: "kiro_cache_force_ratio_center", err: errors.New(`ent: missing required field "Group.kiro_cache_force_ratio_center"`)}
+	}
+	if _, ok := _c.mutation.KiroEndpointMode(); !ok {
+		return &ValidationError{Name: "kiro_endpoint_mode", err: errors.New(`ent: missing required field "Group.kiro_endpoint_mode"`)}
+	}
+	if v, ok := _c.mutation.KiroEndpointMode(); ok {
+		if err := group.KiroEndpointModeValidator(v); err != nil {
+			return &ValidationError{Name: "kiro_endpoint_mode", err: fmt.Errorf(`ent: validator failed for field "Group.kiro_endpoint_mode": %w`, err)}
+		}
 	}
 	return nil
 }
@@ -1113,6 +1160,14 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.KiroCreditTargetUsd(); ok {
 		_spec.SetField(group.FieldKiroCreditTargetUsd, field.TypeFloat64, value)
 		_node.KiroCreditTargetUsd = value
+	}
+	if value, ok := _c.mutation.KiroCacheForceRatioCenter(); ok {
+		_spec.SetField(group.FieldKiroCacheForceRatioCenter, field.TypeFloat64, value)
+		_node.KiroCacheForceRatioCenter = value
+	}
+	if value, ok := _c.mutation.KiroEndpointMode(); ok {
+		_spec.SetField(group.FieldKiroEndpointMode, field.TypeString, value)
+		_node.KiroEndpointMode = value
 	}
 	if nodes := _c.mutation.APIKeysIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1900,6 +1955,36 @@ func (u *GroupUpsert) AddKiroCreditTargetUsd(v float64) *GroupUpsert {
 	return u
 }
 
+// SetKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field.
+func (u *GroupUpsert) SetKiroCacheForceRatioCenter(v float64) *GroupUpsert {
+	u.Set(group.FieldKiroCacheForceRatioCenter, v)
+	return u
+}
+
+// UpdateKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateKiroCacheForceRatioCenter() *GroupUpsert {
+	u.SetExcluded(group.FieldKiroCacheForceRatioCenter)
+	return u
+}
+
+// AddKiroCacheForceRatioCenter adds v to the "kiro_cache_force_ratio_center" field.
+func (u *GroupUpsert) AddKiroCacheForceRatioCenter(v float64) *GroupUpsert {
+	u.Add(group.FieldKiroCacheForceRatioCenter, v)
+	return u
+}
+
+// SetKiroEndpointMode sets the "kiro_endpoint_mode" field.
+func (u *GroupUpsert) SetKiroEndpointMode(v string) *GroupUpsert {
+	u.Set(group.FieldKiroEndpointMode, v)
+	return u
+}
+
+// UpdateKiroEndpointMode sets the "kiro_endpoint_mode" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateKiroEndpointMode() *GroupUpsert {
+	u.SetExcluded(group.FieldKiroEndpointMode)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -2677,6 +2762,41 @@ func (u *GroupUpsertOne) AddKiroCreditTargetUsd(v float64) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateKiroCreditTargetUsd() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateKiroCreditTargetUsd()
+	})
+}
+
+// SetKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field.
+func (u *GroupUpsertOne) SetKiroCacheForceRatioCenter(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetKiroCacheForceRatioCenter(v)
+	})
+}
+
+// AddKiroCacheForceRatioCenter adds v to the "kiro_cache_force_ratio_center" field.
+func (u *GroupUpsertOne) AddKiroCacheForceRatioCenter(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddKiroCacheForceRatioCenter(v)
+	})
+}
+
+// UpdateKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateKiroCacheForceRatioCenter() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateKiroCacheForceRatioCenter()
+	})
+}
+
+// SetKiroEndpointMode sets the "kiro_endpoint_mode" field.
+func (u *GroupUpsertOne) SetKiroEndpointMode(v string) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetKiroEndpointMode(v)
+	})
+}
+
+// UpdateKiroEndpointMode sets the "kiro_endpoint_mode" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateKiroEndpointMode() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateKiroEndpointMode()
 	})
 }
 
@@ -3623,6 +3743,41 @@ func (u *GroupUpsertBulk) AddKiroCreditTargetUsd(v float64) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateKiroCreditTargetUsd() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateKiroCreditTargetUsd()
+	})
+}
+
+// SetKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field.
+func (u *GroupUpsertBulk) SetKiroCacheForceRatioCenter(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetKiroCacheForceRatioCenter(v)
+	})
+}
+
+// AddKiroCacheForceRatioCenter adds v to the "kiro_cache_force_ratio_center" field.
+func (u *GroupUpsertBulk) AddKiroCacheForceRatioCenter(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddKiroCacheForceRatioCenter(v)
+	})
+}
+
+// UpdateKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateKiroCacheForceRatioCenter() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateKiroCacheForceRatioCenter()
+	})
+}
+
+// SetKiroEndpointMode sets the "kiro_endpoint_mode" field.
+func (u *GroupUpsertBulk) SetKiroEndpointMode(v string) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetKiroEndpointMode(v)
+	})
+}
+
+// UpdateKiroEndpointMode sets the "kiro_endpoint_mode" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateKiroEndpointMode() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateKiroEndpointMode()
 	})
 }
 

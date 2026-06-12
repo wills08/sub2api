@@ -282,7 +282,7 @@ func TestBuildKiroEndpointsUsesOnlyAmazonQEndpoint(t *testing.T) {
 		},
 	}
 
-	endpoints := buildKiroEndpoints(account)
+	endpoints := buildKiroEndpoints(account, KiroEndpointModeQ)
 	require.Len(t, endpoints, 1)
 	require.Equal(t, "AmazonQ", endpoints[0].Name)
 	require.Equal(t, "q.us-west-2.amazonaws.com/generateAssistantResponse", endpoints[0].URL[8:])
@@ -298,9 +298,17 @@ func TestBuildKiroEndpointsIgnoresPreferredEndpoint(t *testing.T) {
 			},
 		}
 
-		endpoints := buildKiroEndpoints(account)
+		endpoints := buildKiroEndpoints(account, KiroEndpointModeQ)
 		require.Len(t, endpoints, 1)
 		require.Equal(t, "AmazonQ", endpoints[0].Name)
 		require.Equal(t, "q.us-west-2.amazonaws.com/generateAssistantResponse", endpoints[0].URL[8:])
 	}
+}
+
+func TestBuildKiroEndpointsKRSMode(t *testing.T) {
+	account := &Account{Credentials: map[string]any{"api_region": "us-west-2"}}
+	endpoints := buildKiroEndpoints(account, KiroEndpointModeKRS)
+	require.Len(t, endpoints, 1)
+	require.Equal(t, "KiroRuntime", endpoints[0].Name)
+	require.Equal(t, kiroKRSEndpointURL, endpoints[0].URL)
 }

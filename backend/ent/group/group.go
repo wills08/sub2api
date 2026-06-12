@@ -96,6 +96,10 @@ const (
 	FieldKiroCacheEmulationRatio = "kiro_cache_emulation_ratio"
 	// FieldKiroCreditTargetUsd holds the string denoting the kiro_credit_target_usd field in the database.
 	FieldKiroCreditTargetUsd = "kiro_credit_target_usd"
+	// FieldKiroCacheForceRatioCenter holds the string denoting the kiro_cache_force_ratio_center field in the database.
+	FieldKiroCacheForceRatioCenter = "kiro_cache_force_ratio_center"
+	// FieldKiroEndpointMode holds the string denoting the kiro_endpoint_mode field in the database.
+	FieldKiroEndpointMode = "kiro_endpoint_mode"
 	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
 	EdgeAPIKeys = "api_keys"
 	// EdgeRedeemCodes holds the string denoting the redeem_codes edge name in mutations.
@@ -211,6 +215,8 @@ var Columns = []string{
 	FieldKiroStickySessionTTLSeconds,
 	FieldKiroCacheEmulationRatio,
 	FieldKiroCreditTargetUsd,
+	FieldKiroCacheForceRatioCenter,
+	FieldKiroEndpointMode,
 }
 
 var (
@@ -308,6 +314,12 @@ var (
 	DefaultKiroCacheEmulationRatio float64
 	// DefaultKiroCreditTargetUsd holds the default value on creation for the "kiro_credit_target_usd" field.
 	DefaultKiroCreditTargetUsd float64
+	// DefaultKiroCacheForceRatioCenter holds the default value on creation for the "kiro_cache_force_ratio_center" field.
+	DefaultKiroCacheForceRatioCenter float64
+	// DefaultKiroEndpointMode holds the default value on creation for the "kiro_endpoint_mode" field.
+	DefaultKiroEndpointMode string
+	// KiroEndpointModeValidator is a validator for the "kiro_endpoint_mode" field. It is called by the builders before save.
+	KiroEndpointModeValidator func(string) error
 )
 
 // OrderOption defines the ordering options for the Group queries.
@@ -496,6 +508,16 @@ func ByKiroCacheEmulationRatio(opts ...sql.OrderTermOption) OrderOption {
 // ByKiroCreditTargetUsd orders the results by the kiro_credit_target_usd field.
 func ByKiroCreditTargetUsd(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKiroCreditTargetUsd, opts...).ToFunc()
+}
+
+// ByKiroCacheForceRatioCenter orders the results by the kiro_cache_force_ratio_center field.
+func ByKiroCacheForceRatioCenter(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldKiroCacheForceRatioCenter, opts...).ToFunc()
+}
+
+// ByKiroEndpointMode orders the results by the kiro_endpoint_mode field.
+func ByKiroEndpointMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldKiroEndpointMode, opts...).ToFunc()
 }
 
 // ByAPIKeysCount orders the results by api_keys count.

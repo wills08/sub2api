@@ -237,6 +237,10 @@ type CreateGroupInput struct {
 	KiroCacheEmulationRatio     *float64
 	// Kiro 反向 token 缩放：每 credit 对应 USD 余额（0=禁用，仅 platform=kiro 生效）
 	KiroCreditTargetUSD *float64
+	// Kiro 缓存强制比例中位数（0=禁用，仅 platform=kiro 生效）
+	KiroCacheForceRatioCenter *float64
+	// Kiro 推理 endpoint 模式："q" / "krs"（仅 platform=kiro 生效）
+	KiroEndpointMode *string
 	// 从指定分组复制账号（创建分组后在同一事务内绑定）
 	CopyAccountsFromGroupIDs []int64
 }
@@ -285,6 +289,10 @@ type UpdateGroupInput struct {
 	KiroCacheEmulationRatio     *float64
 	// Kiro 反向 token 缩放：每 credit 对应 USD 余额（仅 platform=kiro 生效）
 	KiroCreditTargetUSD *float64
+	// Kiro 缓存强制比例中位数（仅 platform=kiro 生效）
+	KiroCacheForceRatioCenter *float64
+	// Kiro 推理 endpoint 模式："q" / "krs"（仅 platform=kiro 生效）
+	KiroEndpointMode *string
 	// 从指定分组复制账号（同步操作：先清空当前分组的账号绑定，再绑定源分组的账号）
 	CopyAccountsFromGroupIDs []int64
 }
@@ -1937,9 +1945,17 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 	if input.KiroCreditTargetUSD != nil {
 		group.KiroCreditTargetUSD = *input.KiroCreditTargetUSD
 	}
+	if input.KiroCacheForceRatioCenter != nil {
+		group.KiroCacheForceRatioCenter = *input.KiroCacheForceRatioCenter
+	}
+	if input.KiroEndpointMode != nil {
+		group.KiroEndpointMode = *input.KiroEndpointMode
+	}
 	sanitizeGroupMessagesDispatchFields(group)
 	normalizeKiroCacheEmulationFields(group)
 	normalizeKiroCreditTargetFields(group)
+	normalizeKiroCacheForceFields(group)
+	normalizeKiroEndpointFields(group)
 	if err := s.groupRepo.Create(ctx, group); err != nil {
 		return nil, err
 	}
@@ -2205,9 +2221,17 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	if input.KiroCreditTargetUSD != nil {
 		group.KiroCreditTargetUSD = *input.KiroCreditTargetUSD
 	}
+	if input.KiroCacheForceRatioCenter != nil {
+		group.KiroCacheForceRatioCenter = *input.KiroCacheForceRatioCenter
+	}
+	if input.KiroEndpointMode != nil {
+		group.KiroEndpointMode = *input.KiroEndpointMode
+	}
 	sanitizeGroupMessagesDispatchFields(group)
 	normalizeKiroCacheEmulationFields(group)
 	normalizeKiroCreditTargetFields(group)
+	normalizeKiroCacheForceFields(group)
+	normalizeKiroEndpointFields(group)
 
 	if err := s.groupRepo.Update(ctx, group); err != nil {
 		return nil, err

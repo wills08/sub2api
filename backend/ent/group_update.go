@@ -742,6 +742,41 @@ func (_u *GroupUpdate) AddKiroCreditTargetUsd(v float64) *GroupUpdate {
 	return _u
 }
 
+// SetKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field.
+func (_u *GroupUpdate) SetKiroCacheForceRatioCenter(v float64) *GroupUpdate {
+	_u.mutation.ResetKiroCacheForceRatioCenter()
+	_u.mutation.SetKiroCacheForceRatioCenter(v)
+	return _u
+}
+
+// SetNillableKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableKiroCacheForceRatioCenter(v *float64) *GroupUpdate {
+	if v != nil {
+		_u.SetKiroCacheForceRatioCenter(*v)
+	}
+	return _u
+}
+
+// AddKiroCacheForceRatioCenter adds value to the "kiro_cache_force_ratio_center" field.
+func (_u *GroupUpdate) AddKiroCacheForceRatioCenter(v float64) *GroupUpdate {
+	_u.mutation.AddKiroCacheForceRatioCenter(v)
+	return _u
+}
+
+// SetKiroEndpointMode sets the "kiro_endpoint_mode" field.
+func (_u *GroupUpdate) SetKiroEndpointMode(v string) *GroupUpdate {
+	_u.mutation.SetKiroEndpointMode(v)
+	return _u
+}
+
+// SetNillableKiroEndpointMode sets the "kiro_endpoint_mode" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableKiroEndpointMode(v *string) *GroupUpdate {
+	if v != nil {
+		_u.SetKiroEndpointMode(*v)
+	}
+	return _u
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_u *GroupUpdate) AddAPIKeyIDs(ids ...int64) *GroupUpdate {
 	_u.mutation.AddAPIKeyIDs(ids...)
@@ -1032,6 +1067,11 @@ func (_u *GroupUpdate) check() error {
 			return &ValidationError{Name: "default_mapped_model", err: fmt.Errorf(`ent: validator failed for field "Group.default_mapped_model": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.KiroEndpointMode(); ok {
+		if err := group.KiroEndpointModeValidator(v); err != nil {
+			return &ValidationError{Name: "kiro_endpoint_mode", err: fmt.Errorf(`ent: validator failed for field "Group.kiro_endpoint_mode": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -1249,6 +1289,15 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedKiroCreditTargetUsd(); ok {
 		_spec.AddField(group.FieldKiroCreditTargetUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.KiroCacheForceRatioCenter(); ok {
+		_spec.SetField(group.FieldKiroCacheForceRatioCenter, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedKiroCacheForceRatioCenter(); ok {
+		_spec.AddField(group.FieldKiroCacheForceRatioCenter, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.KiroEndpointMode(); ok {
+		_spec.SetField(group.FieldKiroEndpointMode, field.TypeString, value)
 	}
 	if _u.mutation.APIKeysCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -2270,6 +2319,41 @@ func (_u *GroupUpdateOne) AddKiroCreditTargetUsd(v float64) *GroupUpdateOne {
 	return _u
 }
 
+// SetKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field.
+func (_u *GroupUpdateOne) SetKiroCacheForceRatioCenter(v float64) *GroupUpdateOne {
+	_u.mutation.ResetKiroCacheForceRatioCenter()
+	_u.mutation.SetKiroCacheForceRatioCenter(v)
+	return _u
+}
+
+// SetNillableKiroCacheForceRatioCenter sets the "kiro_cache_force_ratio_center" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableKiroCacheForceRatioCenter(v *float64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetKiroCacheForceRatioCenter(*v)
+	}
+	return _u
+}
+
+// AddKiroCacheForceRatioCenter adds value to the "kiro_cache_force_ratio_center" field.
+func (_u *GroupUpdateOne) AddKiroCacheForceRatioCenter(v float64) *GroupUpdateOne {
+	_u.mutation.AddKiroCacheForceRatioCenter(v)
+	return _u
+}
+
+// SetKiroEndpointMode sets the "kiro_endpoint_mode" field.
+func (_u *GroupUpdateOne) SetKiroEndpointMode(v string) *GroupUpdateOne {
+	_u.mutation.SetKiroEndpointMode(v)
+	return _u
+}
+
+// SetNillableKiroEndpointMode sets the "kiro_endpoint_mode" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableKiroEndpointMode(v *string) *GroupUpdateOne {
+	if v != nil {
+		_u.SetKiroEndpointMode(*v)
+	}
+	return _u
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_u *GroupUpdateOne) AddAPIKeyIDs(ids ...int64) *GroupUpdateOne {
 	_u.mutation.AddAPIKeyIDs(ids...)
@@ -2573,6 +2657,11 @@ func (_u *GroupUpdateOne) check() error {
 			return &ValidationError{Name: "default_mapped_model", err: fmt.Errorf(`ent: validator failed for field "Group.default_mapped_model": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.KiroEndpointMode(); ok {
+		if err := group.KiroEndpointModeValidator(v); err != nil {
+			return &ValidationError{Name: "kiro_endpoint_mode", err: fmt.Errorf(`ent: validator failed for field "Group.kiro_endpoint_mode": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -2807,6 +2896,15 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 	}
 	if value, ok := _u.mutation.AddedKiroCreditTargetUsd(); ok {
 		_spec.AddField(group.FieldKiroCreditTargetUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.KiroCacheForceRatioCenter(); ok {
+		_spec.SetField(group.FieldKiroCacheForceRatioCenter, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedKiroCacheForceRatioCenter(); ok {
+		_spec.AddField(group.FieldKiroCacheForceRatioCenter, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.KiroEndpointMode(); ok {
+		_spec.SetField(group.FieldKiroEndpointMode, field.TypeString, value)
 	}
 	if _u.mutation.APIKeysCleared() {
 		edge := &sqlgraph.EdgeSpec{

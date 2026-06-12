@@ -42,7 +42,7 @@ func TestAccountTestService_KiroUsesKiroUpstreamInsteadOfAnthropic(t *testing.T)
 		tlsFPProfileService: &TLSFingerprintProfileService{},
 	}
 
-	err := svc.TestAccountConnection(ctx, account.ID, "gpt-4o", "", AccountTestModeDefault)
+	err := svc.TestAccountConnection(ctx, account.ID, "gpt-4o", "", AccountTestModeDefault, "")
 	require.Error(t, err)
 	require.Len(t, upstream.requests, 1)
 
@@ -85,7 +85,7 @@ func TestAccountTestService_Kiro429DoesNotFallbackToCodeWhispererEndpoint(t *tes
 		tlsFPProfileService: &TLSFingerprintProfileService{},
 	}
 
-	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault)
+	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault, "")
 	require.Error(t, err)
 	require.Len(t, upstream.requests, 1)
 
@@ -125,7 +125,7 @@ func TestAccountTestService_KiroIDCWithoutProfileArnOmitsProfileArnAndUsesDefaul
 		tlsFPProfileService: &TLSFingerprintProfileService{},
 	}
 
-	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault)
+	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault, "")
 	require.Error(t, err)
 	require.Len(t, upstream.requests, 1)
 	require.Equal(t, "q.us-east-1.amazonaws.com", upstream.requests[0].URL.Host)
@@ -162,7 +162,7 @@ func TestAccountTestService_KiroInvalidModelErrorPassthrough(t *testing.T) {
 		tlsFPProfileService: &TLSFingerprintProfileService{},
 	}
 
-	err := svc.TestAccountConnection(ctx, account.ID, "claude-opus-4-6", "", AccountTestModeDefault)
+	err := svc.TestAccountConnection(ctx, account.ID, "claude-opus-4-6", "", AccountTestModeDefault, "")
 	require.Error(t, err)
 	require.Equal(t, `API returned 400: {"message":"Invalid model ID. Please select a different model to continue.","reason":"INVALID_MODEL_ID"}`, err.Error())
 }
@@ -195,7 +195,7 @@ func TestAccountTestService_KiroInvalidModelDoesNotRefreshProfileArnOrRetry(t *t
 		tlsFPProfileService: &TLSFingerprintProfileService{},
 	}
 
-	err := svc.TestAccountConnection(ctx, account.ID, "claude-opus-4-6", "", AccountTestModeDefault)
+	err := svc.TestAccountConnection(ctx, account.ID, "claude-opus-4-6", "", AccountTestModeDefault, "")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "API returned 400")
 	require.Len(t, upstream.requests, 1)
@@ -236,7 +236,7 @@ func TestAccountTestService_KiroPreferredEndpointIsIgnored(t *testing.T) {
 		tlsFPProfileService: &TLSFingerprintProfileService{},
 	}
 
-	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault)
+	err := svc.TestAccountConnection(ctx, account.ID, "claude-sonnet-4-6", "", AccountTestModeDefault, "")
 	require.Error(t, err)
 	require.Len(t, upstream.requests, 1)
 	require.Equal(t, "q.us-west-2.amazonaws.com", upstream.requests[0].URL.Host)

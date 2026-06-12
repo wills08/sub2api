@@ -183,6 +183,14 @@ func (Group) Fields() []ent.Field {
 			SchemaType(map[string]string{dialect.Postgres: "decimal(8,4)"}).
 			Default(0).
 			Comment("Kiro 反向 token 缩放锚定单价：每 credit 对应 USD 余额（0=禁用）"),
+		field.Float("kiro_cache_force_ratio_center").
+			SchemaType(map[string]string{dialect.Postgres: "decimal(5,4)"}).
+			Default(0).
+			Comment("Kiro 缓存强制比例中位数（0=禁用）。仅当内置缓存识别返回 cache_read=0 时生效，纯展示口径美化"),
+		field.String("kiro_endpoint_mode").
+			MaxLen(8).
+			Default("q").
+			Comment("Kiro 推理 endpoint：q=AWS Q (q.{region}.amazonaws.com), krs=Kiro Runtime Service (runtime.us-east-1.kiro.dev)"),
 	}
 }
 

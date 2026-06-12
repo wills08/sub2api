@@ -78,6 +78,16 @@ type Group struct {
 	// 0 = 禁用反向缩放（保持原有按 token 计费行为）。
 	KiroCreditTargetUSD float64
 
+	// Kiro 缓存强制比例中位数（仅 platform=kiro 生效）。
+	// 0 = 禁用；> 0 启用 Anthropic-like 缓存分布模拟，仅当内置缓存识别返回
+	// cache_read=0 时生效（纯展示口径美化，不改变真实计费总额）。
+	KiroCacheForceRatioCenter float64
+
+	// Kiro 推理 endpoint 模式（仅 platform=kiro 生效）。
+	// "q"   = AWS Q (q.{region}.amazonaws.com)，默认，与其它工具共用限流池
+	// "krs" = Kiro Runtime Service (runtime.us-east-1.kiro.dev)，独立限流池
+	KiroEndpointMode string
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 
@@ -170,6 +180,8 @@ func normalizeKiroCacheEmulationFields(g *Group) {
 func NormalizeGroupRuntimeFields(g *Group) {
 	normalizeKiroCacheEmulationFields(g)
 	normalizeKiroCreditTargetFields(g)
+	normalizeKiroCacheForceFields(g)
+	normalizeKiroEndpointFields(g)
 }
 
 // kiroCreditTargetUSDMaxCap 是 KiroCreditTargetUSD 的安全上限。
@@ -210,6 +222,87 @@ func normalizeKiroCreditTargetFields(g *Group) {
 	}
 	if g.KiroCreditTargetUSD > kiroCreditTargetUSDMaxCap {
 		g.KiroCreditTargetUSD = kiroCreditTargetUSDMaxCap
+	}
+}
+
+// kiroCacheForceRatioCenterMaxCap 是缓存强制比例中位数的上限，防止配置笔误把 input 清零。
+const kiroCacheForceRatioCenterMaxCap = 0.99
+
+// EffectiveKiroCacheForceRatioCenter 返回当前 group 用于缓存强制模拟的中位数。
+// 仅当 Platform = kiro 且配置 > 0 时返回该值（含上限 cap），否则返回 0。
+func (g *Group) EffectiveKiroCacheForceRatioCenter() float64 {
+	if g == nil || g.Platform != PlatformKiro {
+		return 0
+	}
+	v := g.KiroCacheForceRatioCenter
+	if v <= 0 {
+		return 0
+	}
+	if v > kiroCacheForceRatioCenterMaxCap {
+		return kiroCacheForceRatioCenterMaxCap
+	}
+	return v
+}
+
+// KiroCacheForceEnabled 报告该 group 是否启用 Kiro 缓存强制模拟。
+func (g *Group) KiroCacheForceEnabled() bool {
+	return g.EffectiveKiroCacheForceRatioCenter() > 0
+}
+
+func normalizeKiroCacheForceFields(g *Group) {
+	if g == nil {
+		return
+	}
+	if g.Platform != PlatformKiro {
+		g.KiroCacheForceRatioCenter = 0
+		return
+	}
+	if g.KiroCacheForceRatioCenter < 0 {
+		g.KiroCacheForceRatioCenter = 0
+	}
+	if g.KiroCacheForceRatioCenter > kiroCacheForceRatioCenterMaxCap {
+		g.KiroCacheForceRatioCenter = kiroCacheForceRatioCenterMaxCap
+	}
+}
+
+// Kiro 推理 endpoint 模式取值。
+const (
+	KiroEndpointModeQ   = "q"
+	KiroEndpointModeKRS = "krs"
+)
+
+// EffectiveKiroEndpointMode 返回当前 group 实际使用的 Kiro endpoint 模式。
+// 仅当 Platform = kiro 时返回 group 配置；非 kiro 平台、空值或未知字符串兜底返回 "q"。
+func (g *Group) EffectiveKiroEndpointMode() string {
+	if g == nil || g.Platform != PlatformKiro {
+		return KiroEndpointModeQ
+	}
+	switch g.KiroEndpointMode {
+	case KiroEndpointModeKRS:
+		return KiroEndpointModeKRS
+	default:
+		return KiroEndpointModeQ
+	}
+}
+
+// KiroKRSEnabled 报告该 group 是否启用了 Kiro KRS endpoint。
+func (g *Group) KiroKRSEnabled() bool {
+	return g.EffectiveKiroEndpointMode() == KiroEndpointModeKRS
+}
+
+func normalizeKiroEndpointFields(g *Group) {
+	if g == nil {
+		return
+	}
+	if g.Platform != PlatformKiro {
+		g.KiroEndpointMode = ""
+		return
+	}
+	switch g.KiroEndpointMode {
+	case KiroEndpointModeKRS:
+		// keep
+	default:
+		g.KiroEndpointMode = KiroEndpointModeQ
 	}
 }
 

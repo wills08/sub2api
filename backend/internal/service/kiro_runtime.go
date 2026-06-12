@@ -242,6 +242,7 @@ func (s *GatewayService) forwardKiroMessages(ctx context.Context, c *gin.Context
 
 	cacheUsage := s.buildKiroCacheEmulationUsage(account, parsed.Group, body, mappedModel, inputTokens)
 	requestCtx.CacheEmulationUsage = cacheUsage.toKiroUsage()
+	requestCtx.EstimatedInputTokens = inputTokens
 	applyKiroReverseScalingContext(&requestCtx, parsed.Group, originalModel)
 	parseResult, err := kiropkg.ParseNonStreamingEventStreamWithContext(resp.Body, originalModel, requestCtx)
 	if err != nil {
@@ -367,7 +368,7 @@ func (s *GatewayService) executeKiroUpstreamWithParsed(ctx context.Context, acco
 	requestCtx = buildResult.Context
 	logKiroStatelessReplay(account, buildResult.Payload)
 
-	endpoints := buildKiroEndpoints(account)
+	endpoints := buildKiroEndpoints(account, kiroEndpointModeForRequest(parsed))
 	proxyURL := kiroProxyURL(account)
 	tlsProfile := s.tlsFPProfileService.ResolveTLSProfile(account)
 	accountKey := buildKiroAccountKey(account)
@@ -515,7 +516,19 @@ func (s *GatewayService) executeKiroUpstreamWithParsed(ctx context.Context, acco
 	return nil, requestCtx, fmt.Errorf("kiro upstream endpoints exhausted")
 }
 
-func buildKiroEndpoints(account *Account) []kiroEndpointConfig {
+// kiroKRSEndpointURL 是 Kiro 自家前置网关（KRS = Kiro Runtime Service）的固定 URL。
+// KRS 仅支持 us-east-1 / eu-central-1 两个 region；这里固定走 us-east-1。
+const kiroKRSEndpointURL = "https://runtime.us-east-1.kiro.dev/generateAssistantResponse"
+
+func buildKiroEndpoints(account *Account, mode string) []kiroEndpointConfig {
+	if mode == KiroEndpointModeKRS {
+		return []kiroEndpointConfig{
+			{
+				URL:  kiroKRSEndpointURL,
+				Name: "KiroRuntime",
+			},
+		}
+	}
 	region := kiroAPIRegion(account)
 	return []kiroEndpointConfig{
 		{
@@ -523,6 +536,15 @@ func buildKiroEndpoints(account *Account) []kiroEndpointConfig {
 			Name: "AmazonQ",
 		},
 	}
+}
+
+// kiroEndpointModeForRequest 从 ParsedRequest 取 group 配置的 Kiro endpoint 模式；
+// parsed/Group 为 nil 时安全兜底为 "q"。
+func kiroEndpointModeForRequest(parsed *ParsedRequest) string {
+	if parsed == nil || parsed.Group == nil {
+		return KiroEndpointModeQ
+	}
+	return parsed.Group.EffectiveKiroEndpointMode()
 }
 
 func (s *GatewayService) buildKiroPayloadForAccount(ctx context.Context, account *Account, parsed *ParsedRequest, anthropicBody []byte, modelID, token, requestModel string, headers http.Header) (*kiropkg.KiroBuildResult, error) {
@@ -756,6 +778,13 @@ func applyKiroReverseScalingContext(ctx *kiropkg.KiroRequestContext, group *Grou
 	if ctx == nil || group == nil {
 		return
 	}
+	// 强制缓存模拟独立于反向缩放，但作为模拟缓存的兜底层：仅当 group 已开
+	// kiro_cache_emulation_enabled 时才注入 force ratio。force_cache 本身不依赖
+	// KiroCredits，即使 meteringEvent 缺失也能让显示口径正常。
+	if group.EffectiveKiroCacheEmulationEnabled() {
+		ctx.ForceCacheRatioCenter = group.EffectiveKiroCacheForceRatioCenter()
+	}
+
 	target := group.EffectiveKiroCreditTargetUSD()
 	if target <= 0 {
 		return

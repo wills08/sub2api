@@ -2100,3 +2100,41 @@ func TestBuildKiroClaudeUsageMap_NoInternalCreditsField(t *testing.T) {
 	require.False(t, exists, "non-streaming usage map must not expose internal credits field")
 	require.Equal(t, 100, usageMap["input_tokens"])
 }
+
+// TestApplyKiroForceCacheRatio_ReshapesDistribution 验证强制缓存模拟把 token 重分布成
+// Anthropic-like 形态：input 极小、cache_read 占大头，且总量守恒。
+func TestApplyKiroForceCacheRatio_ReshapesDistribution(t *testing.T) {
+	usage := Usage{InputTokens: 50000, OutputTokens: 200, CacheReadInputTokens: 0, CacheCreationInputTokens: 0}
+	ctx := KiroRequestContext{ForceCacheRatioCenter: 0.925}
+	out := applyKiroForceCacheRatio(usage, ctx)
+
+	total := out.InputTokens + out.CacheReadInputTokens + out.CacheCreationInputTokens
+	require.Equal(t, 50000, total, "总 input token 必须守恒")
+	require.Less(t, out.InputTokens, 100, "input 应被压到极小")
+	require.Greater(t, out.CacheReadInputTokens, out.CacheCreationInputTokens, "cache_read 应占大头")
+	require.Equal(t, out.CacheCreationInputTokens, out.CacheCreation5mInputTokens, "cache_creation 归到 5m TTL")
+}
+
+// TestApplyKiroForceCacheRatio_Disabled 验证关闭时只做 input=0→1 兜底，不重分布。
+func TestApplyKiroForceCacheRatio_Disabled(t *testing.T) {
+	usage := Usage{InputTokens: 1000, CacheReadInputTokens: 500}
+	out := applyKiroForceCacheRatio(usage, KiroRequestContext{ForceCacheRatioCenter: 0})
+	require.Equal(t, 1000, out.InputTokens)
+	require.Equal(t, 500, out.CacheReadInputTokens)
+}
+
+// TestApplyKiroForceCacheRatio_ZeroInputSafety 验证 input=0 且 cache>0 时强制 input=1。
+func TestApplyKiroForceCacheRatio_ZeroInputSafety(t *testing.T) {
+	usage := Usage{InputTokens: 0, CacheReadInputTokens: 300}
+	out := applyKiroForceCacheRatio(usage, KiroRequestContext{ForceCacheRatioCenter: 0})
+	require.Equal(t, 1, out.InputTokens, "input=0 且 cache>0 必须兜底为 1")
+}
+
+func TestComputeKiroAnthropicLikeRatio_Monotonic(t *testing.T) {
+	r1, _ := computeKiroAnthropicLikeRatio(3000)
+	r2, _ := computeKiroAnthropicLikeRatio(50000)
+	r3, _ := computeKiroAnthropicLikeRatio(1000000)
+	require.Less(t, r1, r2)
+	require.Less(t, r2, r3)
+	require.LessOrEqual(t, r3, 0.999)
+}
