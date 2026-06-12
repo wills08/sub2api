@@ -3413,6 +3413,8 @@ export default {
         kiroBonus: 'Bonus',
         kiroReset: '重置',
         kiroOverage: '超额',
+        kiroOverageConverted: '折算',
+        kiroOverageConvertedAmbiguous: '该账号所属多个 Kiro 分组配置了不同锚定单价，此处按最大单价折算。',
         kiroDaysLeft: '剩余 {days} 天',
         kiroExpires: '到期',
         passiveSampled: '被动采样',

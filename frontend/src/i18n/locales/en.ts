@@ -4187,6 +4187,8 @@ export default {
         kiroBonus: 'Bonus',
         kiroReset: 'Reset',
         kiroOverage: 'Overage',
+        kiroOverageConverted: 'Est.',
+        kiroOverageConvertedAmbiguous: 'This account belongs to multiple Kiro groups with different anchor prices; the largest rate is used here.',
         kiroDaysLeft: '{days}d left',
         kiroExpires: 'Expires',
         passiveSampled: 'Passive',

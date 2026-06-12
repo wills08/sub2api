@@ -191,3 +191,16 @@ func TestNormalizeGroupRuntimeFields_KiroStickySessionTTL(t *testing.T) {
 	require.False(t, nonKiro.KiroCacheEmulationEnabled)
 	require.Zero(t, nonKiro.KiroCacheEmulationRatio)
 }
+
+// 模拟缓存 + 反向缩放可共存：单价 > 0 时不应关闭模拟缓存。
+func TestNormalizeGroupRuntimeFields_CacheEmulationCoexistsWithReverseScaling(t *testing.T) {
+	g := &Group{
+		Platform:                  PlatformKiro,
+		KiroCacheEmulationEnabled: true,
+		KiroCacheEmulationRatio:   0.5,
+		KiroCreditTargetUSD:       0.1,
+	}
+	NormalizeGroupRuntimeFields(g)
+	require.True(t, g.KiroCacheEmulationEnabled, "反向缩放启用时模拟缓存仍应保留（不互斥）")
+	require.Greater(t, g.EffectiveKiroCreditTargetUSD(), 0.0)
+}

@@ -480,6 +480,13 @@
           <span v-if="kiroOverageSummary" class="inline-flex items-center gap-1 font-medium">
             {{ kiroOverageSummary }}
           </span>
+          <span
+            v-if="kiroOverageConvertedUSD"
+            class="inline-flex items-center gap-1 font-medium text-gray-600 dark:text-gray-300"
+            :title="kiroOverageConvertedAmbiguous ? t('admin.accounts.usageWindow.kiroOverageConvertedAmbiguous') : undefined"
+          >
+            {{ kiroOverageConvertedUSD }}<span v-if="kiroOverageConvertedAmbiguous">*</span>
+          </span>
         </div>
         <div class="flex items-center gap-1.5 mt-0.5">
           <button
@@ -1280,6 +1287,33 @@ const kiroOverageSummary = computed(() => {
     parts.push(`(${symbol}${(overage.overage_charges ?? 0).toFixed(2)})`)
   }
   return parts.join(' ')
+})
+
+// kiroCreditTargetUSDRates 收集该账号所属 Kiro 分组配置的反向缩放锚定单价（> 0）。
+// 账号可属于多个分组、单价可能不同；按约定取最大值核算超额 USD（偏保守、不低估）。
+const kiroCreditTargetUSDRates = computed(() => {
+  const groups = props.account.groups ?? []
+  return groups
+    .filter((g) => g.platform === 'kiro' && (g.kiro_credit_target_usd ?? 0) > 0)
+    .map((g) => g.kiro_credit_target_usd as number)
+})
+
+// kiroOverageConvertedUSD：把超额 credits 按我们配置的锚定单价折算为 USD，
+// 与 Kiro 原生计费金额并列显示，便于核对。多个不同单价时取最大值。
+const kiroOverageConvertedUSD = computed(() => {
+  const overage = usageInfo.value?.kiro_overage
+  const credits = overage?.current_overages ?? 0
+  const rates = kiroCreditTargetUSDRates.value
+  if (credits <= 0 || rates.length === 0) return ''
+  const rate = Math.max(...rates)
+  const usd = credits * rate
+  if (!Number.isFinite(usd) || usd <= 0) return ''
+  return `${t('admin.accounts.usageWindow.kiroOverageConverted')} $${usd.toFixed(2)}`
+})
+
+// 多个分组配置了不同单价时，折算结果存在歧义，给出提示。
+const kiroOverageConvertedAmbiguous = computed(() => {
+  return new Set(kiroCreditTargetUSDRates.value).size > 1
 })
 
 const loadUsage = async (options?: { source?: 'passive' | 'active'; bypassCache?: boolean }) => {
