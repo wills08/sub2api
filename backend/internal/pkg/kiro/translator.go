@@ -4293,14 +4293,23 @@ type kiroAnthropicLikeBreakpoint struct {
 }
 
 // kiroAnthropicLikeFit 基于真实 Anthropic Claude Code 直连数据反推的分段拟合表：
-// total 越大 → cache_read 占比越接近 99%，input 几乎可忽略（真实 p50=1）。
+// 实测分桶（真实 CC 直连 Anthropic，按 total_input 分桶）：
+//   total <20k    → cache_read≈0.835, input p50=106
+//   total 20-100k → cache_read≈0.823, input p50=2
+//   total 100-300k→ cache_read≈0.916, input p50=2
+//   total 300-600k→ cache_read≈0.933, input p50=2
+//   total >600k   → cache_read≈0.914, input p50=2
+// 两个关键事实：① input 不随 total 增长，≥20k 恒为 p50=2（旧表让 inputCap 涨到 12 是错的，
+// 叠加反向缩放 K>1 会把大请求 input 抬到 14~17，明显偏离真实）；② cache_read 占比在
+// 0.82~0.93 之间，并非趋近 0.99（旧表 0.985/0.992 偏高）。因此 inputCap 全部压平为 1，
+// 反向缩放 K 自然把 final_input 带到 ~2，与真实 CC p50 对齐；readRatio 按实测分桶重拟合。
 var kiroAnthropicLikeFit = []kiroAnthropicLikeBreakpoint{
-	{0, 0.500, 1},
-	{5000, 0.750, 1},
-	{20000, 0.885, 1},
-	{100000, 0.935, 3},
-	{500000, 0.985, 8},
-	{2000000, 0.992, 12},
+	{0, 0.600, 1},
+	{5000, 0.800, 1},
+	{20000, 0.830, 1},
+	{100000, 0.900, 1},
+	{500000, 0.930, 1},
+	{2000000, 0.915, 1},
 }
 
 // computeKiroAnthropicLikeRatio 给定 total_input_tokens，返回 (cache_read_ratio, input_cap)。
